@@ -1,0 +1,305 @@
+{
+	"info": {
+		"_postman_id": "54e66603-1f2f-45d8-b532-9a549440e6d1",
+		"name": "BankingTestApplication",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Administration",
+			"item": [
+				{
+					"name": "AdminCreateAccount",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"employeeID\":12301,\r\n    \"employeeName\":\"Benjamin Sinzore\",\r\n    \"employeePassword\":\"pass1234\",\r\n    \"confirmPassword\":\"pass1234\",\r\n    \"employeeCapacity\":\"Managing Director\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8083/BankingTest/AdminCreateAccount",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8083",
+							"path": [
+								"BankingTest",
+								"AdminCreateAccount"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "AdminLogin",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"employeeID\":11110012301,\r\n    \"employeePassword\":\"pass1234\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8083/BankingTest/AdminLogin",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8083",
+							"path": [
+								"BankingTest",
+								"AdminLogin"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "ValidateCustomerAccount",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"accountNumber\":10010010\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8083/BankingTest/ValidateCustomerAccount",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8083",
+							"path": [
+								"BankingTest",
+								"ValidateCustomerAccount"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "AccountValidationReinder",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://localhost:8083/BankingTest/AccountValidationReinder",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8083",
+							"path": [
+								"BankingTest",
+								"AccountValidationReinder"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Security",
+			"item": [
+				{
+					"name": "CustomerRegistration",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"userID\":1230,\r\n    \"userName\":\"Benjamin Sinzore\",\r\n    \"userEmailAddress\":\"benjaminsinzore@gmail.com\",\r\n    \"userPassword\":\"pass1234\",\r\n    \"confirmPassword\":\"pass1234\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8083/BankingTest/CustomerRegistration",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8083",
+							"path": [
+								"BankingTest",
+								"CustomerRegistration"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "CustomerLogin",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"userAccountNumber\":1001001230,\r\n    \"userPassword\":\"pass1234\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8083/BankingTest/CustomerLogin",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8083",
+							"path": [
+								"BankingTest",
+								"CustomerLogin"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Transactions",
+			"item": [
+				{
+					"name": "CashWithdraw",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"accountNumber\":1001001230,\r\n    \"amount\":5000.133,\r\n    \"userPassword\":\"pass1234\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8083/BankingTest/CashWithdraw",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8083",
+							"path": [
+								"BankingTest",
+								"CashWithdraw"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "CashDeposit",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"accountNumber\":1001001230,\r\n    \"amount\":10000.133\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8083/BankingTest/CashDeposit",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8083",
+							"path": [
+								"BankingTest",
+								"CashDeposit"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "CashTransfer",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"accountNumber\":1001001230,\r\n    \"accountNumberToSendTo\":10010010,\r\n    \"amount\":100.05,\r\n    \"userPassword\":\"pass1234\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8083/BankingTest/CashTransfer",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8083",
+							"path": [
+								"BankingTest",
+								"CashTransfer"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "CheckAvailableBalance",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n    \"accountNumber\":10010010,\r\n    \"userPassword\":\"\"\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://localhost:8083/BankingTest/CheckAvailableBalance",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8083",
+							"path": [
+								"BankingTest",
+								"CheckAvailableBalance"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

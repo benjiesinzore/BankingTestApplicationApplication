@@ -32,6 +32,7 @@ public class TransactionsService {
         GlobalResponse response = new GlobalResponse();
         String res;
         try {
+
             res = repository.cashDeposit(
                     model.getAccountNumber(),
                     model.getAmount()
@@ -90,6 +91,7 @@ public class TransactionsService {
         GlobalResponse response = new GlobalResponse();
         String res;
         try {
+
             res = repository.cashTransfer(
                     model.getAccountNumber(),
                     model.getAccountNumberToSendTo(),

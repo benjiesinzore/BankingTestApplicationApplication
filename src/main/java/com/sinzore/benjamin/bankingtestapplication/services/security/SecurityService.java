@@ -100,34 +100,5 @@ public class SecurityService {
 
     }
 
-    public ResponseEntity<GlobalResponse> customerRequestPinChange(
-            CustomerRequestPinChangeModel model){
-
-        GlobalResponse response = new GlobalResponse();
-        String res;
-        try {
-            res = repository.customerRequestPinChange(
-                    model.getUserAccountNumber(),
-                    model.getUserName(),
-                    model.getUserPassword(),
-                    model.getRequestDate());
-
-            response.setMessage(res);
-
-            return new ResponseEntity<>(response, HttpStatus.OK);
-
-        } catch (Exception ee){
-            String error = ee.getMessage();
-            logger.error(error);
-            logger.info("Customer Request PIN Change Endpoint : Security Controller");
-            response.setStatus(500);
-            response.setError(error);
-            response.setMessage("Internal Server Error.");
-
-            return new ResponseEntity<>(response, HttpStatus.REQUEST_TIMEOUT);
-
-        }
-
-    }
 
 }

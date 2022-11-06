@@ -4,12 +4,14 @@ import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.math.BigInteger;
+
 @Getter
 @Setter
 @Data
 public class CustomerLoginModel {
 
-    int userAccountNumber;
+    BigInteger userAccountNumber;
     String userPassword;
 
 }

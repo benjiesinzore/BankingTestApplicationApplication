@@ -7,6 +7,8 @@ import org.springframework.data.jpa.repository.query.Procedure;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigInteger;
+
 @Repository
 public interface SecurityRepository extends JpaRepository<MyEntity, Integer> {
 
@@ -30,25 +32,11 @@ public interface SecurityRepository extends JpaRepository<MyEntity, Integer> {
     String customerLogin(
 
             @Param("accountNumberIN")
-            int accountNumberIN,
+            BigInteger accountNumberIN,
 
             @Param("userPasswordIN")
             String userPasswordIN
     );
 
-    @Procedure(procedureName = "sp_Request_PIN_Change")
-    String customerRequestPinChange(
 
-            @Param("accountNumberIN")
-            int accountNumberIN,
-
-            @Param("userNameIN")
-            String userNameIN,
-
-            @Param("userPasswordIN")
-            String userPasswordIN,
-
-            @Param("requestDateIN")
-            String requestDateIN
-    );
 }

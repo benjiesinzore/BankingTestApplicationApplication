@@ -39,13 +39,5 @@ public class SecurityController {
         return response;
     }
 
-    @PostMapping("/CustomerRequestPinChange")
-    public ResponseEntity<GlobalResponse> customerRequestPinChange(
-            @RequestBody CustomerRequestPinChangeModel model){
-
-        response = service.customerRequestPinChange(model);
-        return response;
-    }
-
 
 }

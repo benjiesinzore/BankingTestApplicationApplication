@@ -48,50 +48,20 @@ create table bankingtestdb.t_bankadminregistrationdetails(
         # Table 3. (Customer Transaction Details) t_customertransactiondetails
 use bankingtestdb;
 create table bankingtestdb.t_customertransactiondetails(
-        ID BIGINT PRIMARY KEY,
-        accountNumber BIGINT NOT NULL ,
-        amount BIGINT NOT NULL,
-        createdOn VARCHAR(100)  NOT NULL,
-        credit BIGINT NOT NULL,
-        debit BIGINT  NOT NULL,
-        sentTo VARCHAR(100) NOT NULL,
-        receivedFrom VARCHAR(100) NOT NULL,
-        availableBalance BIGINT NOT NULL
+ID BIGINT PRIMARY KEY,
+accountNumber BIGINT NOT NULL ,
+foreign key (accountNumber) REFERENCES t_CustomerRegistrationDetails (accountNumber),
+amount decimal(65, 2) NOT NULL,
+createdOn VARCHAR(100)  NOT NULL,
+credit decimal(65, 2) NOT NULL,
+debit decimal(65, 2)  NOT NULL,
+sentTo VARCHAR(100) NOT NULL,
+receivedFrom VARCHAR(100) NOT NULL,
+availableBalance decimal(65, 2) NOT NULL
 );
-ALTER TABLE bankingtestdb.t_customertransactiondetails ADD FOREIGN KEY (accountNumber)
-REFERENCES bankingtestdb.t_customertransactiondetails (accountNumber);
 
 
 
-
-
-        # Table 4. (Bank Transaction) t_banktransactions
-use bankingtestdb;
-create table bankAccountTest.t_banktransactions(
-        ID INT(11) NOT NULL PRIMARY KEY,
-        accountNumber VARCHAR(100) NOT NULL,
-        amount INT(11) NOT NULL,
-        createdOn VARCHAR(100)  NOT NULL,
-        credit DECIMAL(10,0) NOT NULL,
-        debit DECIMAL(10,0) NOT NULL,
-        sentTo VARCHAR(100) NOT NULL,
-        receivedFrom VARCHAR(100)  NOT NULL,
-        availableBalance DECIMAL(10,0) NOT NULL,
-        loanBalance DECIMAL(10,0) NOT NULL,
-        loanStatus VARCHAR(100) NOT NULL
-)
-
-
-        # Table 5. (Loan Management) t_loanmanagement
-use bankingtestdb;
-    create table t_loanmanagement(
-    loanID bigint primary key,
-    applicantID bigint,
-    foreign key (applicantID) REFERENCES t_customertransactiondetails (accountNumber),
-    amount decimal(10, 0),
-    plaidDate varchar(100),
-    dueDate varchar(100)
-);
 
 
 # 2. Create Stored Procedure
@@ -107,41 +77,43 @@ DROP procedure IF EXISTS `bankingtestdb`.`sp_CustomerRegistrationDetails`;
 DELIMITER $$
 USE `bankingtestdb`$$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_CustomerRegistrationDetails`(
-    IN userIDIN BIGINT,
-    IN userNameIN VARCHAR(100),
-    IN userPasswordIN VARCHAR(100),
-    IN userEmailAddressIN VARCHAR(100)
+IN userIDIN BIGINT,
+IN userNameIN VARCHAR(100),
+IN userPasswordIN VARCHAR(100),
+IN userEmailAddressIN VARCHAR(100),
+OUT Message VARCHAR(900)
 )
 BEGIN
-    DECLARE Message VARCHAR(100);
-    DECLARE GetAccNumber BIGINT;
-    DECLARE ErrorStatus INT;
-    BEGIN
-        IF EXISTS(SELECT userID FROM bankingtestdb.t_CustomerRegistrationDetails WHERE userID = userIDIN)
-        THEN
-        SET Message = CONCAT(CONCAT('User with this ID NO. ', userIDIN), ', already exist. Please contact customer care for help.');
-        ELSE
-        GET diagnostics condition 1 @sqlstate = returned_sqlstate, @errno = mysql_errno, @text = message_text;
-        SET @full_errno = concat("ERRNO ", @errno, "(", @sqlstate, "):", @text);
-        SET GetAccNumber = (SELECT (CONCAT((100100), userIDIN)));
-        INSERT INTO bankingtestdb.t_CustomerRegistrationDetails (
-        accountNumber, userID, userName, userPassword, userEmailAddress, status
-        ) VALUES (
-        GetAccNumber, userIDIN, userNameIN, userPasswordIN, userEmailAddressIN, 'Pending Approval'
-        );
-        SET Message = CONCAT(GetAccNumber, ', is your account number. Thank you for banking with us.');
-        END IF;
-    END;
-    SET ErrorStatus = (SELECT EXISTS (SELECT @full_errno) != NULL);
-    IF (ErrorStatus)
-    THEN
-    SET Message = (SELECT @full_errno);
-    END IF;
-    SELECT Message;
+DECLARE GetAccNumber BIGINT;
+DECLARE ErrorStatus INT;
+BEGIN
+IF EXISTS(SELECT userID FROM bankingtestdb.t_CustomerRegistrationDetails WHERE userID = userIDIN)
+THEN
+SET Message = CONCAT(CONCAT('User with this ID NO. ', userIDIN), ', already exist. Please contact customer care for help.');
+ELSE
+GET diagnostics condition 1 @sqlstate = returned_sqlstate, @errno = mysql_errno, @text = message_text;
+SET @full_errno = concat("ERRNO ", @errno, "(", @sqlstate, "):", @text);
+SET GetAccNumber = (SELECT (CONCAT((100100), userIDIN)));
+INSERT INTO bankingtestdb.t_CustomerRegistrationDetails (
+accountNumber, userID, userName, userPassword, userEmailAddress, status
+) VALUES (
+GetAccNumber, userIDIN, userNameIN, userPasswordIN, userEmailAddressIN, 'Pending Approval'
+);
+SET Message = CONCAT(GetAccNumber, ', is your account number. Thank you for banking with us.');
+END IF;
+END;
+SET ErrorStatus = (SELECT EXISTS (SELECT @full_errno) != NULL);
+IF (ErrorStatus)
+THEN
+SET Message = (SELECT @full_errno);
+END IF;
+SELECT Message;
 END$$
 
 DELIMITER ;
 ;
+
+
 
 
 
@@ -159,11 +131,11 @@ DROP procedure IF EXISTS `bankingtestdb`.`sp_CustomerLogin`;
 DELIMITER $$
 USE `bankingtestdb`$$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_CustomerLogin`(
-IN accountNumberIN VARCHAR(100),
-IN userPasswordIN VARCHAR(100)
+IN accountNumberIN bigint,
+IN userPasswordIN VARCHAR(100),
+OUT ResMessage VARCHAR(900)
 )
 BEGIN
-DECLARE ResMessage VARCHAR(100);
 DECLARE GetPassword VARCHAR(100);
 IF EXISTS (SELECT accountNumber FROM `bankingtestdb`.`t_CustomerRegistrationDetails` WHERE accountNumber = accountNumberIN AND status != 'Pending Approval')
 THEN SET GetPassword = (SELECT userPassword FROM `bankingtestdb`.`t_CustomerRegistrationDetails` WHERE accountNumber = accountNumberIN);
@@ -177,6 +149,8 @@ END$$
 
 DELIMITER ;
 ;
+
+
 
 
 
@@ -196,25 +170,32 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_BankEmployeeRegistrationDetails`
 IN employeeIDIN BIGINT,
 IN employeePasswordIN VARCHAR(100),
 IN employeeNameIN VARCHAR(100),
-IN employeeCapacityIN VARCHAR(100)
+IN employeeCapacityIN VARCHAR(100),
+OUT Message VARCHAR(100)
 )
 BEGIN
-DECLARE Message VARCHAR(100);
-DECLARE GetAccNumber BIGINT;
+DECLARE EmployeeCardNumber BIGINT;
 DECLARE ErrorStatus INT;
 BEGIN
-IF EXISTS(SELECT employeeID FROM bankingtestdb.t_BankEmployee WHERE employeeID = employeeIDIN)
+IF EXISTS(SELECT employeeID FROM bankingtestdb.t_bankadminregistrationdetails WHERE employeeID = employeeIDIN)
 THEN
 SET Message = CONCAT(CONCAT('Employee with this ID NO. ', employeeIDIN), ', already exist.');
 ELSE
 GET diagnostics condition 1 @sqlstate = returned_sqlstate, @errno = mysql_errno, @text = message_text;
 SET @full_errno = concat("ERRNO ", @errno, "(", @sqlstate, "):", @text);
-INSERT INTO bankingtestdb.t_BankEmployee (
-employeeID, employeePassword, employeeName, employeeCapacity
+SET EmployeeCardNumber = CONCAT('111100', employeeIDIN);
+INSERT INTO bankingtestdb.t_bankadminregistrationdetails (
+employeeID,
+employeePassword,
+employeeName,
+employeeCapacity
 ) VALUES (
-employeeIDIN, employeePasswordIN, employeeNameIN, employeeCapacityIN
+EmployeeCardNumber,
+employeePasswordIN,
+employeeNameIN,
+employeeCapacityIN
 );
-SET Message = CONCAT(employeeIDIN, ', is your employee curd number.');
+SET Message = CONCAT(EmployeeCardNumber, ', is your office employee number.');
 END IF;
 END;
 SET ErrorStatus = (SELECT EXISTS (SELECT @full_errno) != NULL);
@@ -231,6 +212,8 @@ DELIMITER ;
 
 
 
+
+
         # Stored Procedure 4. sp_BankEmployeeLogin
 USE `bankingtestdb`;
 DROP procedure IF EXISTS `sp_BankEmployeeLogin`;
@@ -243,17 +226,16 @@ DELIMITER $$
 USE `bankingtestdb`$$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_BankEmployeeLogin`(
 IN employeeIDIN VARCHAR(100),
-IN employeePasswordIN VARCHAR(100)
+IN employeePasswordIN VARCHAR(100),
+out ResMessage VARCHAR(900)
 )
 BEGIN
-DECLARE ResMessage VARCHAR(100);
 DECLARE GetPassword VARCHAR(100);
-IF EXISTS (SELECT employeeID FROM `bankingtestdb`.`t_BankEmployee` WHERE employeeID = employeeIDIN)
-THEN SET GetPassword = (SELECT employeePassword FROM `bankingtestdb`.`t_BankEmployee` WHERE employeeID = employeeIDIN);
+IF EXISTS (SELECT employeeID FROM `bankingtestdb`.`t_bankadminregistrationdetails` WHERE employeeID = employeeIDIN)
+THEN SET GetPassword = (SELECT employeePassword FROM `bankingtestdb`.`t_bankadminregistrationdetails` WHERE employeeID = employeeIDIN);
 END IF;
 IF (GetPassword = employeePasswordIN)
 THEN SET ResMessage = 'Login was Successful.';
-CALL  bankingtestdb.sp_CustomerValidationReminder();
 ELSE SET ResMessage = 'Invalid Credentials, please try again.';
 SELECT ResMessage;
 END IF;
@@ -261,6 +243,8 @@ END$$
 
 DELIMITER ;
 ;
+
+
 
 
 
@@ -277,13 +261,21 @@ DROP procedure IF EXISTS `bankingtestdb`.`sp_CustomerValidationReminder`;
 
 DELIMITER $$
 USE `bankingtestdb`$$
-CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_CustomerValidationReminder`()
+CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_CustomerValidationReminder`(
+
+)
 BEGIN
-SELECT * FROM t_CustomerRegistrationDetails WHERE status = 'Pending Approval';
+SELECT
+accountNumber, #as valueOne#,
+userName,
+userEmailAddress
+FROM t_CustomerRegistrationDetails WHERE status = 'Pending Approval';
 END$$
 
 DELIMITER ;
 ;
+
+
 
 
 
@@ -301,19 +293,22 @@ DROP procedure IF EXISTS `bankingtestdb`.`sp_ApproveCustomer`;
 DELIMITER $$
 USE `bankingtestdb`$$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_ApproveCustomer`(
-IN accountNumberIN VARCHAR(100)
+IN accountNumberIN VARCHAR(100),
+OUT ResMessage VARCHAR(100)
 )
 BEGIN
-DECLARE ResMessage VARCHAR(100);
 IF EXISTS (SELECT accountNumber FROM `bankingtestdb`.`t_CustomerRegistrationDetails` WHERE accountNumber = accountNumberIN)
 THEN UPDATE `bankingtestdb`.`t_CustomerRegistrationDetails` SET status = 'Approved' WHERE accountNumber = accountNumberIN AND status = 'Pending Approval';
 SET ResMessage = CONCAT('User with account number ', CONCAT(accountNumberIN, ', has been approved'));
+ELSE
+SET ResMessage = CONCAT('User with account number ', CONCAT(accountNumberIN, ', does not exist.'));
 END IF;
 SELECT ResMessage;
 END$$
 
 DELIMITER ;
 ;
+
 
 
 
@@ -332,32 +327,48 @@ DELIMITER $$
 USE `bankingtestdb`$$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_CustomerTransactionDetails_Deposit`(
 IN accountNumberIN BIGINT,
-IN amountIN BIGINT
+IN amountIN double,
+OUT ResMessage VARCHAR(900)
 )
 BEGIN
 DECLARE getTotalNum BIGINT;
-DECLARE getAvailableBal BIGINT;
-DECLARE getLoanBal BIGINT;
-DECLARE ResMessage VARCHAR(900);
+DECLARE getAvailableBal double;
+DECLARE getLoanBal double;
 IF EXISTS (SELECT accountNumber FROM `bankingtestdb`.`t_CustomerRegistrationDetails` WHERE accountNumber = accountNumberIN)
 THEN
 BEGIN
-IF ((SELECT EXISTS (SELECT availableBalance FROM `bankingtestdb`.`t_CustomerTransactionDetails`WHERE accountNumber = accountNumberIN ) != 0))
+IF ((SELECT EXISTS (SELECT availableBalance FROM `bankingtestdb`.`t_customertransactiondetails`WHERE accountNumber = accountNumberIN ) != 0))
 THEN
-SET getAvailableBal = (SELECT ((SELECT availableBalance FROM `bankingtestdb`.`t_CustomerTransactionDetails` WHERE accountNumber = accountNumberIN AND ID = (SELECT MAX(ID) FROM `bankingtestdb`.`t_CustomerTransactionDetails` WHERE accountNumber = accountNumberIN)) + amountIN));
+SET getAvailableBal = (SELECT ((SELECT availableBalance FROM `bankingtestdb`.`t_customertransactiondetails` WHERE accountNumber = accountNumberIN AND ID = (SELECT MAX(ID) FROM `bankingtestdb`.`t_customertransactiondetails` WHERE accountNumber = accountNumberIN)) + amountIN));
 ELSE        
 SET getAvailableBal = amountIN;
 END IF;
 END;
-SET getTotalNum = (SELECT(1 + (SELECT ID FROM `bankingtestdb`.`t_CustomerTransactionDetails` WHERE ID = (SELECT MAX(ID) FROM `bankingtestdb`.`t_CustomerTransactionDetails`))));
-IF ((SELECT EXISTS (SELECT 1 FROM `bankingtestdb`.`t_CustomerTransactionDetails`)) = 0)
+SET getTotalNum = (SELECT(1 + (SELECT ID FROM `bankingtestdb`.`t_customertransactiondetails` WHERE ID = (SELECT MAX(ID) FROM `bankingtestdb`.`t_customertransactiondetails`))));
+IF ((SELECT EXISTS (SELECT 1 FROM `bankingtestdb`.`t_customertransactiondetails`)) = 0)
 THEN
 SET getTotalNum = 0;
 END IF;
-INSERT INTO `bankingtestdb`.`t_CustomerTransactionDetails`(
-ID, accountNumber, amount, createdOn, credit, debit, sentTo, receivedFrom, availableBalance
+INSERT INTO `bankingtestdb`.`t_customertransactiondetails`(
+ID,
+accountNumber,
+amount,
+createdOn,
+credit,
+debit,
+sentTo,
+receivedFrom,
+availableBalance
 ) VALUES (
-getTotalNum, accountNumberIN, amountIN, (SELECT (current_date())), amountIN, 0, 'NULL', 'NULL', getAvailableBal
+getTotalNum,
+accountNumberIN,
+amountIN,
+(SELECT (current_date())),
+amountIN,
+0,
+'NULL',
+'NULL',
+getAvailableBal
 );
 SET ResMessage = (SELECT (CONCAT(CONCAT('Amount ', CONCAT(amountIN,' has been credited to,')), accountNumberIN)));
 ELSE SET ResMessage = (SELECT (CONCAT('User with this ', CONCAT(accountNumberIN,' account number does not exist, please contact customer service. Thank you.'))));
@@ -367,6 +378,8 @@ END$$
 
 DELIMITER ;
 ;
+
+
 
 
 
@@ -386,47 +399,50 @@ DROP procedure IF EXISTS `bankingtestdb`.`sp_CustomerTransactionDetails_Withdraw
 DELIMITER $$
 USE `bankingtestdb`$$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_CustomerTransactionDetails_Withdraw`(
-IN accountNumberIN VARCHAR(100),
-IN amountIN INT
+IN accountNumberIN BIGINT,
+IN amountIN double,
+IN userPasswordIN VARCHAR(900),
+OUT ResMessage VARCHAR(900)
 )
 BEGIN
 DECLARE getTotalNum INT;
-DECLARE getAvailableBal INT;
-DECLARE getLoanBal INT;
+DECLARE getAvailableBal double;
+DECLARE getLoanBal double;
 DECLARE getLoanStatus INT;
 DECLARE getAvailableBalStatus INT;
-DECLARE ResMessage VARCHAR(900);
-IF EXISTS (SELECT accountNumber FROM `bankingtestdb`.`t_CustomerRegistrationDetails` WHERE accountNumber = accountNumberIN)
-THEN
-SET getTotalNum = (SELECT(1 + (SELECT ID FROM `bankingtestdb`.`t_CustomerTransactionDetails` WHERE ID = (SELECT MAX(ID) FROM `bankingtestdb`.`t_CustomerTransactionDetails`))));
-SET getAvailableBal = ((SELECT availableBalance FROM `bankingtestdb`.`t_CustomerTransactionDetails` WHERE accountNumber = accountNumberIN AND ID = ((SELECT MAX(ID) FROM `bankingtestdb`.`t_CustomerTransactionDetails` WHERE accountNumber = accountNumberIN))));
-SET getAvailableBalStatus = ((SELECT availableBalance FROM `bankingtestdb`.`t_CustomerTransactionDetails` WHERE accountNumber = accountNumberIN AND ID = ((SELECT MAX(ID) FROM `bankingtestdb`.`t_CustomerTransactionDetails` WHERE accountNumber = accountNumberIN))));
-IF (getAvailableBalStatus)
-THEN
-IF (getAvailableBal < amountIN)
-THEN
-SET ResMessage = 'Your account balance is insufficient.';
-ELSE
-BEGIN
-INSERT INTO `bankingtestdb`.`t_CustomerTransactionDetails`(
-ID, accountNumber, amount, createdOn, credit, debit, sentTo, receivedFrom, availableBalance
-) VALUES (
-getTotalNum, accountNumberIN, amountIN, (SELECT (current_date())), 0, amountIN, 'NULL', 'NULL', (getAvailableBal  - amountIN)
-);
-SET ResMessage = CONCAT(CONCAT('Withdrawal of ', CONCAT(amountIN,' was successful from account,')), accountNumberIN);
-END;
-END IF;
-ELSE
-SET ResMessage = 'You have insufficient balance.';
-END IF;
-ELSE
-SET ResMessage = CONCAT('User with this ', CONCAT(accountNumberIN,' account number does not exist, please contact customer service. Thank you.'));
-END IF;
-SELECT ResMessage;
+    IF EXISTS (SELECT accountNumber FROM `bankingtestdb`.`t_CustomerRegistrationDetails` WHERE accountNumber = accountNumberIN AND userPassword = userPasswordIN)
+		THEN
+			SET getTotalNum = (SELECT(1 + (SELECT ID FROM `bankingtestdb`.`t_customertransactiondetails` WHERE ID = (SELECT MAX(ID) FROM `bankingtestdb`.`t_customertransactiondetails`))));
+			SET getAvailableBal = ((SELECT availableBalance FROM `bankingtestdb`.`t_customertransactiondetails` WHERE accountNumber = accountNumberIN AND ID = ((SELECT MAX(ID) FROM `bankingtestdb`.`t_customertransactiondetails` WHERE accountNumber = accountNumberIN))));
+			SET getAvailableBalStatus = ((SELECT availableBalance FROM `bankingtestdb`.`t_customertransactiondetails` WHERE accountNumber = accountNumberIN AND ID = ((SELECT MAX(ID) FROM `bankingtestdb`.`t_customertransactiondetails` WHERE accountNumber = accountNumberIN))));
+			IF (getAvailableBalStatus)
+				THEN
+                    IF (getAvailableBal < amountIN)
+				THEN
+					SET ResMessage = 'Your account balance is insufficient.';
+				ELSE
+					BEGIN
+						INSERT INTO `bankingtestdb`.`t_customertransactiondetails`(
+							ID, accountNumber, amount, createdOn, credit, debit, sentTo, receivedFrom, availableBalance
+						) VALUES (
+							getTotalNum, accountNumberIN, amountIN, (SELECT (current_date())), 0, amountIN, 'NULL', 'NULL', (getAvailableBal  - amountIN)
+						);
+						SET ResMessage = CONCAT(CONCAT('Withdrawal of ', CONCAT(amountIN,' was successful from account,')), accountNumberIN);
+					END;
+			END IF;
+                ELSE
+					SET ResMessage = 'You have insufficient balance.';
+                END IF;
+		ELSE 
+			SET ResMessage = CONCAT('User with this ', CONCAT(accountNumberIN,' account number does not exist. Please check your check your Account number and Password and try again or contact customer service. Thank you.'));
+    END IF;
+    SELECT ResMessage; 
 END$$
 
 DELIMITER ;
 ;
+
+
 
 
 
@@ -449,53 +465,50 @@ USE `bankingtestdb`$$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_CustomerTransaction_TransferFunds`(
 IN accountNumberIN BIGINT,
 IN accountNumberToSendToIN BIGINT,
-IN amountIN BIGINT
+IN amountIN double,
+IN userPasswordIN VARCHAR(900),
+OUT ResMessage VARCHAR(900)
 )
 BEGIN
 DECLARE getTotalNum INT;
-DECLARE getAvailableBal INT;
-DECLARE getLoanBal INT;
-DECLARE getLoanStatus INT;
+DECLARE getAvailableBal double;
 DECLARE getAvailableBalStatus INT;
-DECLARE ResMessage VARCHAR(900);
-IF EXISTS (SELECT accountNumber FROM `bankingtestdb`.`t_CustomerRegistrationDetails` WHERE accountNumber = accountNumberIN)
-THEN
-SET getTotalNum = (SELECT(1 + (SELECT ID FROM `bankingtestdb`.`t_CustomerTransactionDetails` WHERE ID = (SELECT MAX(ID) FROM `bankingtestdb`.`t_CustomerTransactionDetails`))));
-SET getAvailableBal = ((SELECT availableBalance FROM `bankingtestdb`.`t_CustomerTransactionDetails` WHERE accountNumber = accountNumberIN AND ID = ((SELECT MAX(ID) FROM `bankingtestdb`.`t_CustomerTransactionDetails` WHERE accountNumber = accountNumberIN))));
-SET getAvailableBalStatus = (SELECT EXISTS ((SELECT availableBalance FROM `bankingtestdb`.`t_CustomerTransactionDetails` WHERE accountNumber = accountNumberIN AND ID = ((SELECT MAX(ID) FROM `bankingtestdb`.`t_CustomerTransactionDetails` WHERE accountNumber = accountNumberIN)))) != 0);
-IF (getAvailableBalStatus != 0)
-THEN
-IF (getAvailableBal < amountIN)
-THEN
-SET ResMessage = 'Your account balance is insufficient.';
-ELSE
-BEGIN
-INSERT INTO `bankingtestdb`.`t_CustomerTransactionDetails`(
-ID, accountNumber, amount, createdOn, credit, debit, sentTo, receivedFrom, availableBalance
-) VALUES (
-getTotalNum, accountNumberIN, amountIN, (SELECT (current_date())), 0, amountIN, accountNumberToSendToIN, 'NULL', (getAvailableBal  - amountIN)
-);
-#call sp_CustomerTransaction_Complete_TransferFunds to credit "accountNumberToSendToIN"
-CALL `bankingtestdb`.`sp_CustomerTransaction_Complete_TransferFunds`(accountNumberToSendToIN, accountNumberIN, amountIN);
-SET ResMessage = CONCAT(CONCAT('Amount ', CONCAT(amountIN,' was successful creadited to account,')), accountNumberToSendToIN);
-END;
-END IF;
-ELSE
-SET ResMessage = 'You have insufficient balance. 676';
-END IF;
-ELSE
-SET ResMessage = CONCAT('User with this ', CONCAT(accountNumberIN,' account number does not exist, please contact customer service. Thank you.'));
-END IF;
-SELECT ResMessage;
+	IF EXISTS (SELECT accountNumber FROM `bankingtestdb`.`t_CustomerRegistrationDetails` WHERE accountNumber = accountNumberIN AND userPassword = userPasswordIN AND (SELECT exists(SELECT accountNumber FROM `bankingtestdb`.`t_CustomerRegistrationDetails` WHERE accountNumber = accountNumberToSendToIN AND status = 'Approved')))
+		THEN
+			SET getTotalNum = (SELECT(1 + (SELECT ID FROM `bankingtestdb`.`t_customertransactiondetails` WHERE ID = (SELECT MAX(ID) FROM `bankingtestdb`.`t_customertransactiondetails`))));
+			SET getAvailableBal = ((SELECT availableBalance FROM `bankingtestdb`.`t_customertransactiondetails` WHERE accountNumber = accountNumberIN AND ID = ((SELECT MAX(ID) FROM `bankingtestdb`.`t_customertransactiondetails` WHERE accountNumber = accountNumberIN))));
+			SET getAvailableBalStatus = (SELECT EXISTS ((SELECT availableBalance FROM `bankingtestdb`.`t_customertransactiondetails` WHERE accountNumber = accountNumberIN AND ID = ((SELECT MAX(ID) FROM `bankingtestdb`.`t_customertransactiondetails` WHERE accountNumber = accountNumberIN)))) != 0);
+			IF (getAvailableBalStatus != 0)
+				THEN
+                    IF (getAvailableBal < amountIN)
+				THEN
+					SET ResMessage = 'Your account balance is insufficient.';
+				ELSE
+					BEGIN                    
+                    IF (accountNumberIN != accountNumberToSendToIN)
+                    THEN
+						INSERT INTO `bankingtestdb`.`t_customertransactiondetails`(
+							ID, accountNumber, amount, createdOn, credit, debit, sentTo, receivedFrom, availableBalance
+						) VALUES (
+							getTotalNum, accountNumberIN, amountIN, (SELECT (current_date())), 0, amountIN, accountNumberToSendToIN, 'NULL', (getAvailableBal  - amountIN)
+						);                        
+                        CALL `bankingtestdb`.`sp_CustomerTransaction_Complete_TransferFunds`(accountNumberToSendToIN, accountNumberIN, amountIN, @ResMessage);
+					ELSE
+                        SET ResMessage = 'Please check your account number and the resipints acount number, they can not be the same.';
+					END IF;
+                    END;
+			END IF;
+                ELSE
+					SET ResMessage = 'You have insufficient balance.';
+                END IF;
+		ELSE 
+			SET ResMessage = CONCAT('User with this ', CONCAT(accountNumberIN,' account number does not exist, or your login details are incorect. Please contact customer service. Thank you.'));
+    END IF;
+    SELECT ResMessage; 
 END$$
 
 DELIMITER ;
 ;
-
-
-
-
-
 
 
 
@@ -513,29 +526,29 @@ USE `bankingtestdb`$$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_CustomerTransaction_Complete_TransferFunds`(
 IN accountNumberIN BIGINT,
 IN accountNumberReceivedFromIN BIGINT,
-IN amountIN BIGINT
+IN amountIN double,
+OUT ResMessage VARCHAR(900)
 )
 BEGIN
 DECLARE getTotalNum BIGINT;
-DECLARE getAvailableBal BIGINT;
-DECLARE getLoanBal BIGINT;
+DECLARE getAvailableBal double;
 DECLARE ResMessage VARCHAR(900);
 IF EXISTS (SELECT accountNumber FROM `bankingtestdb`.`t_CustomerRegistrationDetails` WHERE accountNumber = accountNumberIN)
 THEN
 BEGIN
-IF ((SELECT EXISTS (SELECT availableBalance FROM `bankingtestdb`.`t_CustomerTransactionDetails`WHERE accountNumber = accountNumberIN ) != 0))
+IF ((SELECT EXISTS (SELECT availableBalance FROM `bankingtestdb`.`t_customertransactiondetails`WHERE accountNumber = accountNumberIN ) != 0))
 THEN
-SET getAvailableBal = (SELECT ((SELECT availableBalance FROM `bankingtestdb`.`t_CustomerTransactionDetails` WHERE accountNumber = accountNumberIN AND ID = (SELECT MAX(ID) FROM `bankingtestdb`.`t_CustomerTransactionDetails` WHERE accountNumber = accountNumberIN)) + amountIN));
+SET getAvailableBal = (SELECT ((SELECT availableBalance FROM `bankingtestdb`.`t_customertransactiondetails` WHERE accountNumber = accountNumberIN AND ID = (SELECT MAX(ID) FROM `bankingtestdb`.`t_customertransactiondetails` WHERE accountNumber = accountNumberIN)) + amountIN));
 ELSE        
 SET getAvailableBal = amountIN;
 END IF;
 END;
-SET getTotalNum = (SELECT(1 + (SELECT ID FROM `bankingtestdb`.`t_CustomerTransactionDetails` WHERE ID = (SELECT MAX(ID) FROM `bankingtestdb`.`t_CustomerTransactionDetails`))));
-IF ((SELECT EXISTS (SELECT 1 FROM `bankingtestdb`.`t_CustomerTransactionDetails`)) = 0)
+SET getTotalNum = (SELECT(1 + (SELECT ID FROM `bankingtestdb`.`t_customertransactiondetails` WHERE ID = (SELECT MAX(ID) FROM `bankingtestdb`.`t_customertransactiondetails`))));
+IF ((SELECT EXISTS (SELECT 1 FROM `bankingtestdb`.`t_customertransactiondetails`)) = 0)
 THEN
 SET getTotalNum = 0;
 END IF;
-INSERT INTO `bankingtestdb`.`t_CustomerTransactionDetails`(
+INSERT INTO `bankingtestdb`.`t_customertransactiondetails`(
 ID, accountNumber, amount, createdOn, credit, debit, sentTo, receivedFrom, availableBalance
 ) VALUES (
 getTotalNum, accountNumberIN, amountIN, (SELECT (current_date())), amountIN, 0, 'NULL', accountNumberReceivedFromIN, getAvailableBal
@@ -555,6 +568,8 @@ DELIMITER ;
 
 
 
+
+
         # Stored Proceedure 11. sp_GetAvailableBalance
 USE `bankingtestdb`;
 DROP procedure IF EXISTS `sp_GetAvailableBalance`;
@@ -566,17 +581,18 @@ DROP procedure IF EXISTS `bankingtestdb`.`sp_GetAvailableBalance`;
 DELIMITER $$
 USE `bankingtestdb`$$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `sp_GetAvailableBalance`(
-IN accountNumberIN BIGINT
+IN accountNumberIN BIGINT,
+IN userPasswordIN VARCHAR(100),
+OUT ResMessage VARCHAR(900)
 )
 BEGIN
-DECLARE ResMessage VARCHAR(900);
-IF EXISTS (SELECT accountNumber FROM `bankingtestdb`.`t_CustomerRegistrationDetails` WHERE accountNumber = accountNumberIN)
-THEN
-SET ResMessage = CONCAT(CONCAT('Your balance is, ',((SELECT availableBalance FROM `bankingtestdb`.`t_CustomerTransactionDetails` WHERE accountNumber = accountNumberIN AND ID = ((SELECT MAX(ID) FROM `bankingtestdb`.`t_CustomerTransactionDetails` WHERE accountNumber = accountNumberIN)) ))), '. Thank you for banking with us.');
-ELSE
-SET ResMessage = CONCAT('User with this account does not exist.');
-END IF;
-SELECT ResMessage;
+    IF EXISTS (SELECT accountNumber FROM `bankingtestdb`.`t_CustomerRegistrationDetails` WHERE accountNumber = accountNumberIN AND userPassword = userPasswordIN)
+    THEN
+    SET ResMessage = CONCAT(CONCAT('Your balance is, ',((SELECT availableBalance FROM `bankingtestdb`.`t_customertransactiondetails` WHERE accountNumber = accountNumberIN AND ID = ((SELECT MAX(ID) FROM `bankingtestdb`.`t_customertransactiondetails` WHERE accountNumber = accountNumberIN)) ))), '. Thank you for banking with us.');
+    ELSE
+    SET ResMessage = CONCAT('User with this account number ', CONCAT(accountNumberIN, ' does not exist.'));
+    END IF;
+    SELECT ResMessage;
 END$$
 
 DELIMITER ;
@@ -589,409 +605,314 @@ DELIMITER ;
 
 
 
+
+
 # 2. Postman Collection {Endpoint, Request-Body and Response}
 
-        # POST - REQUEST 1. (Customer Registration)
-http://localhost:8080/BankApi/CustomerRegistration
-
-        #Request Body
 {
-    "UserID": "123456",
-    "UserName": "Benjamin Sinzore",
-    "UserPassword": "pass1234",
-    "UserEmailAddress": "benjaminsinzore@gmail.com"
+"info": {
+"_postman_id": "54e66603-1f2f-45d8-b532-9a549440e6d1",
+"name": "BankingTestApplication",
+"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+},
+"item": [
+{
+"name": "Administration",
+"item": [
+{
+"name": "AdminCreateAccount",
+"request": {
+"method": "POST",
+"header": [],
+"body": {
+"mode": "raw",
+"raw": "{\r\n    \"employeeID\":12301,\r\n    \"employeeName\":\"Benjamin Sinzore\",\r\n    \"employeePassword\":\"pass1234\",\r\n    \"confirmPassword\":\"pass1234\",\r\n    \"employeeCapacity\":\"Managing Director\"\r\n}",
+"options": {
+"raw": {
+"language": "json"
 }
-
-        #Response Positive
-{
-    "timestamp": "Sat Sep 10 17:10:53 EAT 2022",
-    "status": 200,
-    "error": null,
-    "message": "100100123456, is your account number. Thank you for banking with us."
 }
-
-        #Response Negative
-{
-    "timestamp": "Sat Sep 10 17:11:47 EAT 2022",
-    "status": 200,
-    "error": null,
-    "message": "User with this ID NO. 123456, already exist. Please contact customer care for help."
-}
-
-
-
-        # POST - REQUEST 2. (Customer Registration)
-http://localhost:8080/BankApi/CustomerLogin
-
-        #Request Body
-{
-    "AccountNumber": "100100123456",
-    "UserPassword": "pass12"
-}
-
-        #Response Positive
-{
-    "timestamp": null,
-    "status": 200,
-    "error": "null.",
-    "message": "Login was Successful."
-}
-
-        #Response Negative
-{
-    "timestamp": null,
-    "status": 200,
-    "error": "null.",
-    "message": "Invalid Credentials, please contact the Bank for assistance."
-}
-
-
-        # POST - REQUEST 3. (Customer Approval)
-http://localhost:8080/BankApi/CustomerApproval
-
-        #Request Body
-{
-    "AccountNumber": "100100123456"
-}
-
-        #Response Positive
-{
-    "timestamp": null,
-    "status": 200,
-    "error": null,
-    "message": "User with account number 100100123456, has been approved"
-}
-
-
-        # POST - REQUEST 4. (Bank Employee Registration)
-http://localhost:8080/BankApi/BankEmployeeRegistration
-
-        #Request Body
-{
-    "EmployeeID": "100100123456",
-    "EmployeePassword": "pass12",
-    "EmployeeName": "Benjamin Sinzore",
-    "EmployeeCapacity": "Customer Care"
-}
-
-        #Response Positive
-{
-    "timestamp": null,
-    "status": 200,
-    "error": null,
-    "message": "100100123456, is your employee curd number."
-}
-
-        #Response Negative
-{
-    "timestamp": null,
-    "status": 200,
-    "error": null,
-    "message": "Employee with this ID NO. 100100123456, already exist."
-}
-
-
-        # POST - REQUEST 5. (Bank Employee Login And Return Customer Pending Approval)
-http://localhost:8080/BankApi/BankEmployeeLoginAndReturnCustomerPendingApproval
-
-        #Request Body
-{
-    "EmployeeID": "100100123456",
-    "EmployeePassword": "pass12"
-}
-
-        #Response Positive
-{
-"status": 200,
-"message": "Hello, here is a list of Customers Pending Approval.",
-"error": "null",
-"data": [
-[
-22,
-"Ben",
-"ben@12"
+},
+"url": {
+"raw": "http://localhost:8083/BankingTest/AdminCreateAccount",
+"protocol": "http",
+"host": [
+"localhost"
 ],
-[
-6932462,
-"Benjamin",
-"ben@123"
-],
-[
-8142122,
-"Benjamin",
-"ben@123"
-],
-[
-12532462,
-"Benjamin",
-"ben@123"
-],
-[
-12833123,
-"Benjamin",
-"ben@123"
-],
-[
-19730045,
-"Benjamin",
-"ben@123"
-],
-[
-23412345,
-"Benjamin",
-"ben@123"
-],
-[
-32846232,
-"Benjamin",
-"ben@123"
-],
-[
-59873322,
-"Benjamin",
-"ben@123"
-],
-[
-100100402,
-"Benjamin",
-"ben@123"
-],
-[
-100100622,
-"Benjamin",
-"ben@123"
-],
-[
-101062092,
-"Benjamin",
-"ben@12"
-],
-[
-101062992,
-"Benjamin",
-"ben@12"
-],
-[
-131223902,
-"Benjamin",
-"ben@123"
-],
-[
-199702392,
-"Benjamin",
-"ben@123"
-],
-[
-219151234,
-"Benjamin",
-"ben@123"
-],
-[
-562112345,
-"Benjamin",
-"ben@123"
-],
-[
-624524602,
-"Benjamin",
-"ben@123"
-],
-[
-836131045,
-"Benjamin",
-"ben@123"
-],
-[
-959383262,
-"Benjamin",
-"ben@123"
-],
-[
-1001004002,
-"Benjamin",
-"ben@123"
-],
-[
-10106299092,
-"Benjamin",
-"ben@12"
-],
-[
-1001006211092,
-"Benjamin",
-"ben@12"
-]
+"port": "8083",
+"path": [
+"BankingTest",
+"AdminCreateAccount"
 ]
 }
-
-        #Response Negative
+},
+"response": []
+},
 {
-    "status": 200,
-    "message": "Hello, here is a list of Customers Pending Approval.",
-    "error": "null",
-    "data": [
-        "Invalid Credentials, please try again."
-    ]
+"name": "AdminLogin",
+"request": {
+"method": "POST",
+"header": [],
+"body": {
+"mode": "raw",
+"raw": "{\r\n    \"employeeID\":11110012301,\r\n    \"employeePassword\":\"pass1234\"\r\n}",
+"options": {
+"raw": {
+"language": "json"
 }
-
-
-        # POST - REQUEST 6. (Customer Transaction Deposit)
-http://localhost:8080/BankApi/CustomerTransactionDeposit
-
-        #Request Body
-{
-    "AccountNumber": "100100123456",
-    "Amount": "800000"
 }
-
-        #Response Positive
-{
-    "timestamp": null,
-    "status": 200,
-    "error": null,
-    "message": "Amount 800000 has been credited to,100100123456"
+},
+"url": {
+"raw": "http://localhost:8083/BankingTest/AdminLogin",
+"protocol": "http",
+"host": [
+"localhost"
+],
+"port": "8083",
+"path": [
+"BankingTest",
+"AdminLogin"
+]
 }
-
-        #Response Negative 1
+},
+"response": []
+},
 {
-    "timestamp": null,
-    "status": 200,
-    "error": null,
-    "message": "User with this 1001001234561 account number does not exist, please contact customer service. Thank you."
+"name": "ValidateCustomerAccount",
+"request": {
+"method": "POST",
+"header": [],
+"body": {
+"mode": "raw",
+"raw": "{\r\n    \"accountNumber\":10010010\r\n}",
+"options": {
+"raw": {
+"language": "json"
 }
-
-        #Response Negative 2 (when amount is a string)
-{
-    "timestamp": "2022-09-11T08:55:31.943+00:00",
-    "status": 400,
-    "error": "Bad Request",
-    "path": "/BankApi/CustomerTransactionDeposit"
 }
-
-        #Response Negative 3 (When amount is less or equal to 0)
-{
-    "timestamp": null,
-    "status": 200,
-    "error": null,
-    "message": "Please check the amount before you proceed."
+},
+"url": {
+"raw": "http://localhost:8083/BankingTest/ValidateCustomerAccount",
+"protocol": "http",
+"host": [
+"localhost"
+],
+"port": "8083",
+"path": [
+"BankingTest",
+"ValidateCustomerAccount"
+]
 }
-
-
-        # POST - REQUEST 7. (Customer Transaction Withdraw)
-http://localhost:8080/BankApi/CustomerTransactionWithdraw
-
-        #Request Body
+},
+"response": []
+},
 {
-    "AccountNumber": "100100123456",
-    "Amount": "10000"
+"name": "AccountValidationReinder",
+"request": {
+"method": "GET",
+"header": [],
+"url": {
+"raw": "http://localhost:8083/BankingTest/AccountValidationReinder",
+"protocol": "http",
+"host": [
+"localhost"
+],
+"port": "8083",
+"path": [
+"BankingTest",
+"AccountValidationReinder"
+]
 }
-
-        #Response Positive
-{
-    "timestamp": null,
-    "status": 200,
-    "error": null,
-    "message": "Withdrawal of 10000 was successful from account,100100123456"
+},
+"response": []
 }
-
-        #Response Negative 1
+]
+},
 {
-    "timestamp": null,
-    "status": 200,
-    "error": null,
-    "message": "User with this 1001001234561 account number does not exist, please contact customer service. Thank you."
+"name": "Security",
+"item": [
+{
+"name": "CustomerRegistration",
+"request": {
+"method": "POST",
+"header": [],
+"body": {
+"mode": "raw",
+"raw": "{\r\n    \"userID\":1230,\r\n    \"userName\":\"Benjamin Sinzore\",\r\n    \"userEmailAddress\":\"benjaminsinzore@gmail.com\",\r\n    \"userPassword\":\"pass1234\",\r\n    \"confirmPassword\":\"pass1234\"\r\n}",
+"options": {
+"raw": {
+"language": "json"
 }
-        #Response Negative 2 (when amount is a string)
-{
-    "timestamp": "2022-09-11T08:55:31.943+00:00",
-    "status": 400,
-    "error": "Bad Request",
-    "path": "/BankApi/CustomerTransactionDeposit"
 }
-
-        #Response Negative 3 (When amount is less or equal to 0)
-{
-    "timestamp": null,
-    "status": 200,
-    "error": null,
-    "message": "Please check the amount before you proceed."
+},
+"url": {
+"raw": "http://localhost:8083/BankingTest/CustomerRegistration",
+"protocol": "http",
+"host": [
+"localhost"
+],
+"port": "8083",
+"path": [
+"BankingTest",
+"CustomerRegistration"
+]
 }
-
-        #Response Negative 4 (Insufficient funds)
+},
+"response": []
+},
 {
-"timestamp": null,
-"status": 200,
-"error": null,
-"message": "Your account balance is insufficient."
+"name": "CustomerLogin",
+"request": {
+"method": "POST",
+"header": [],
+"body": {
+"mode": "raw",
+"raw": "{\r\n    \"userAccountNumber\":1001001230,\r\n    \"userPassword\":\"pass1234\"\r\n}",
+"options": {
+"raw": {
+"language": "json"
 }
-
-
-        # POST - REQUEST 8. (Customer Transaction Transfer Funds)
-http://localhost:8080/BankApi/CustomerTransaction_TransferFunds
-
-        #Request Body
-{
-    "AccountNumber": "100100123465",
-    "AccountNumberToSendTo": "100100123456",
-    "Amount": "500000"
 }
-
-        #Response Positive
-{
-    "timestamp": null,
-    "status": 200,
-    "error": null,
-    "message": "Withdrawal of 10000 was successful from account,100100123456"
+},
+"url": {
+"raw": "http://localhost:8083/BankingTest/CustomerLogin",
+"protocol": "http",
+"host": [
+"localhost"
+],
+"port": "8083",
+"path": [
+"BankingTest",
+"CustomerLogin"
+]
 }
-
-        #Response Negative 1 (insufficient balance)
-{
-    "timestamp": null,
-    "status": 200,
-    "error": null,
-    "message": "Your account balance is insufficient."
+},
+"response": []
 }
-
-        #Response Negative 2 (Wrong account number.)
+]
+},
 {
-    "timestamp": null,
-    "status": 200,
-    "error": null,
-    "message": "User with this 1001001234645 account number does not exist, please contact customer service. Thank you."
+"name": "Transactions",
+"item": [
+{
+"name": "CashWithdraw",
+"request": {
+"method": "POST",
+"header": [],
+"body": {
+"mode": "raw",
+"raw": "{\r\n    \"accountNumber\":1001001230,\r\n    \"amount\":5000.133,\r\n    \"userPassword\":\"pass1234\"\r\n}",
+"options": {
+"raw": {
+"language": "json"
 }
-
-
-
-        # POST - REQUEST 9. (Customer Transaction Transfer Funds)
-http://localhost:8080/BankApi/CustomerTransaction_GetAvailableBalance
-
-        #Request Body
-{
-"AccountNumber": "100100123465"
 }
-
-        #Response Positive
-{
-"timestamp": null,
-"status": 200,
-"error": null,
-"message": "Your balance is, 433000. Thank you for banking with us."
+},
+"url": {
+"raw": "http://localhost:8083/BankingTest/CashWithdraw",
+"protocol": "http",
+"host": [
+"localhost"
+],
+"port": "8083",
+"path": [
+"BankingTest",
+"CashWithdraw"
+]
 }
-
-        #Response Negative 1 (insufficient balance)
+},
+"response": []
+},
 {
-"timestamp": null,
-"status": 200,
-"error": null,
-"message": "Your account balance is insufficient."
+"name": "CashDeposit",
+"request": {
+"method": "POST",
+"header": [],
+"body": {
+"mode": "raw",
+"raw": "{\r\n    \"accountNumber\":1001001230,\r\n    \"amount\":10000.133\r\n}",
+"options": {
+"raw": {
+"language": "json"
 }
-
-        #Response Negative 2 (wrong account number)
+}
+},
+"url": {
+"raw": "http://localhost:8083/BankingTest/CashDeposit",
+"protocol": "http",
+"host": [
+"localhost"
+],
+"port": "8083",
+"path": [
+"BankingTest",
+"CashDeposit"
+]
+}
+},
+"response": []
+},
 {
-    "timestamp": null,
-    "status": 200,
-    "error": null,
-    "message": "User with this account does not exist."
+"name": "CashTransfer",
+"request": {
+"method": "POST",
+"header": [],
+"body": {
+"mode": "raw",
+"raw": "{\r\n    \"accountNumber\":1001001230,\r\n    \"accountNumberToSendTo\":10010010,\r\n    \"amount\":100.05,\r\n    \"userPassword\":\"pass1234\"\r\n}",
+"options": {
+"raw": {
+"language": "json"
+}
+}
+},
+"url": {
+"raw": "http://localhost:8083/BankingTest/CashTransfer",
+"protocol": "http",
+"host": [
+"localhost"
+],
+"port": "8083",
+"path": [
+"BankingTest",
+"CashTransfer"
+]
+}
+},
+"response": []
+},
+{
+"name": "CheckAvailableBalance",
+"request": {
+"method": "POST",
+"header": [],
+"body": {
+"mode": "raw",
+"raw": "{\r\n    \"accountNumber\":10010010,\r\n    \"userPassword\":\"\"\r\n}",
+"options": {
+"raw": {
+"language": "json"
+}
+}
+},
+"url": {
+"raw": "http://localhost:8083/BankingTest/CheckAvailableBalance",
+"protocol": "http",
+"host": [
+"localhost"
+],
+"port": "8083",
+"path": [
+"BankingTest",
+"CheckAvailableBalance"
+]
+}
+},
+"response": []
+}
+]
+}
+]
 }
 
 
